@@ -1,8 +1,3 @@
--- what do i need?
---> rendering module
---> input parsing module
---> complexity calculation module
-
 local ok = check_module("nvim-treesitter.ts_utils")
 if not ok then
 	print("node_fetcher module will not work because nvim-treesitter.ts_utils cannot be required")
