@@ -1,15 +1,16 @@
-local ok = check_module("nvim-treesitter.ts_utils")
+local helpers = require("complex.helpers")
+local ok = helpers.check_module("nvim-treesitter.ts_utils")
 if not ok then
-	print("node_fetcher module will not work because nvim-treesitter.ts_utils cannot be required")
+	print("Node finder module will not work because nvim-treesitter.ts_utils cannot be required")
 	return false
 end
 local ts_utils = require("nvim-treesitter.ts_utils")
 
-local node_fetcher = {}
+local M = {}
 
+---@param node TSNode
 ---@return TSNode | nil
-node_fetcher.get_outermost_fn = function()
-	local node = ts_utils.get_node_at_cursor()
+M.get_outermost_fn_node = function(node)
 	if node == nil then
 		print("No parsed node at cursor")
 		return
@@ -27,10 +28,7 @@ node_fetcher.get_outermost_fn = function()
 		parent = parent:parent()
 	end
 
-	if outermost_fn ~= nil then
-		ts_utils.update_selection(vim.api.nvim_get_current_buf(), outermost_fn)
-	end
 	return outermost_fn
 end
 
-return node_fetcher
+return M
