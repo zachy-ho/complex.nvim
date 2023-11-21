@@ -8,4 +8,8 @@ function M.check_module(module)
 	return ok
 end
 
+function M.P(ting)
+	print(vim.inspect(ting))
+end
+
 return M

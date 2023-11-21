@@ -1,8 +1,6 @@
-local ts_utils = require("nvim-treesitter.ts_utils")
 local node_finder = require("complex")
-
-local P = function(ting)
-	print(vim.inspect(ting))
+if not node_finder then
+	return
 end
 
 describe("get_outermost_fn_node", function()
@@ -25,6 +23,7 @@ describe("get_outermost_fn_node", function()
 		})
 
 		local outermost_fn = node_finder.get_outermost_fn_node(node)
+		assert(outermost_fn ~= nil)
 
 		local function_name
 		for child in outermost_fn:iter_children() do
