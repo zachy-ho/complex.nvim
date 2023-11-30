@@ -1,4 +1,4 @@
-local node_finder = require("complex")
+local node_finder = require("complex.node_finder")
 if not node_finder then
 	return
 end
