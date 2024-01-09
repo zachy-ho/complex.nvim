@@ -47,23 +47,18 @@ M.get_top_level_function_node = function(node)
 	return outermost_fn
 end
 
----@param node TSNode top-level function node
----@return TSNode
+---@param node TSNode function node
+---@return TSNode | nil
 M.get_body_node = function(node)
 	if is_function_declaration(node) then
 		return node:child(3)
 	end
 
 	if is_lexical_declaration_of_arrow_function(node) then
-		P(node:child(1):child(2):child(2):child_count())
-		P(node:child(1):child(2):child(2):child(0):type())
-		P(node:child(1):child(2):child(2):child(1):type())
-		P(node:child(1):child(2):child(2):child(2):type())
-		P(node:child(1):child(2):child(2):child(3):type())
-		P(node:child(1):child(2):child(2):child(4):type())
-		P(node:child(1):child(2):child(2):child(5):type())
 		return node:child(1):child(2):child(2)
 	end
+
+	return nil
 end
 
 return M

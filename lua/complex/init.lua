@@ -21,7 +21,13 @@ M.get_function_complexity = filetype_checker.with_check_filetype(function()
 		return
 	end
 
-	P(scorer.calculate_complexity(top_level_fn_node))
+	local ok, result = pcall(scorer.calculate_complexity, top_level_fn_node)
+	if not ok then
+		P(result)
+		return
+	end
+
+	P(result)
 end)
 
 return M
