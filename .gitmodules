@@ -1,0 +1,3 @@
+[submodule "pack/complex/start/nvim-treesitter"]
+	path = pack/complex/start/nvim-treesitter
+	url = git@github.com:nvim-treesitter/nvim-treesitter.git
