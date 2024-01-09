@@ -1,11 +1,7 @@
 local ts_parser = require("complex.typescript_parser")
 assert(ts_parser, "typescript_parser module could not be required???")
 
----@param node TSNode
----@return boolean is_loop_node
-local is_loop_statement_node = function(node)
-	return node:type() == "for_statement" or node:type() == "while_statement"
-end
+local M = {}
 
 ---@class Scorer
 ---@field new fun(self: Scorer, score: (integer | nil), nest: (integer | nil)): Scorer
@@ -33,7 +29,11 @@ function Scorer:score()
 	return self.__score
 end
 
-local M = {}
+---@param node TSNode
+---@return boolean is_loop_node
+local is_loop_statement_node = function(node)
+	return node:type() == "for_statement" or node:type() == "while_statement"
+end
 
 -- TODO augment this functino to return points of score additions and nesting multiplier
 ---@param node TSNode Top-level node for a function
