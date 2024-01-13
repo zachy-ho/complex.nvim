@@ -27,7 +27,7 @@ M.get_function_complexity = filetype_checker.with_check_filetype(function()
 		return
 	end
 
-	P(result)
+	P("Complexity: " .. result)
 end)
 
 return M
