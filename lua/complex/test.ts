@@ -9,10 +9,17 @@ const arrowFn = () => {
 
   }
 
-  let v = 0
-  while (v > 0) {
+  while (false) {
 
   }
+
+  let v = 3;
+  do {
+    console.log('in a do while')
+    continue;
+    break;
+  }
+  while (v > 0) 
 }
 
 const someVar = {

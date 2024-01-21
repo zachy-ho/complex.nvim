@@ -1,11 +1,14 @@
-local ts_parser = require("complex.typescript_parser")
-assert(ts_parser, "typescript_parser module could not be required???")
-
--- local ts_utils = require("nvim_treesitter.ts_utils")
+local ts_parser = require("complex.parsers.typescript")
+if not ts_parser then
+	error({ msg = "Typescript parser couldn't be required" })
+	return
+end
 
 local filetype_checker = require("complex.filetype_checker")
 local scorer = require("complex.scorer")
+local S = require("complex.score")
 
+-- The main API
 local M = {}
 
 -- TODO
@@ -21,7 +24,10 @@ M.get_function_complexity = filetype_checker.with_check_filetype(function()
 		return
 	end
 
-	local ok, result = pcall(scorer.calculate_complexity, top_level_fn_node)
+	local starting_body_node = ts_parser.get_body_node(top_level_fn_node)
+	assert(starting_body_node ~= nil, "Function node doesn't have a body?")
+
+	local ok, result = pcall(scorer.calculate_complexity, starting_body_node, S.Score:new(), S.score_controller)
 	if not ok then
 		P(result)
 		return

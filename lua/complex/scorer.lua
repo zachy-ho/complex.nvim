@@ -1,63 +1,47 @@
-local ts_parser = require("complex.typescript_parser")
+local ts_parser = require("complex.parsers.typescript")
 assert(ts_parser, "typescript_parser module could not be required???")
 
 local M = {}
 
----@class Scorer
----@field new fun(self: Scorer, score: (integer | nil), nest: (integer | nil)): Scorer
----@field increment fun(self: Scorer): integer
----@field score fun(self: Scorer): integer
-local Scorer = {}
-Scorer.__index = Scorer
-
----@param score integer | nil
----@param nest integer | nil
-function Scorer:new(score, nest)
-	return setmetatable({
-		__score = score or 0,
-		__nest = nest or 0,
-	}, Scorer)
-end
-
---TODO implement nest level increments
-function Scorer:increment()
-	self.__score = self.__score + 1
-	return self.__score
-end
-
-function Scorer:score()
-	return self.__score
-end
-
 ---@param node TSNode
 ---@return boolean is_loop_node
 local is_loop_statement_node = function(node)
-	return node:type() == "for_statement" or node:type() == "while_statement"
+  return node:type() == "for_statement" or node:type() == "while_statement" or node:type() == "do_statement"
 end
 
 -- TODO augment this functino to return points of score additions and nesting multiplier
----@param node TSNode Top-level node for a function
+---@param node TSNode Top-level node from which children nodes can be iterated
+---@param score Score
+---@param score_controller ScoreController
 ---@return number complexity
-M.calculate_complexity = function(node)
-	local scorer = Scorer:new()
-	-----------
-	local body = ts_parser.get_body_node(node)
-	if body == nil then
-		error({
-			msg = "No function body node found.",
-		})
-	end
+M.calculate_complexity = function(node, score, score_controller)
+  local get_next_child = node:iter_children()
+  local child = get_next_child()
+  while child ~= nil do
+    if is_loop_statement_node(child) then
+      -- loop block
+      score_controller.increment(score)
+      score_controller.increment_nest(score)
+      P(ts_parser.get_loop_body_node(child):type())
+      -- recurse calculate_complexity from the body node
+      -- decrement nest after getting out of recursion
+    elseif false then
+      -- if block
+    elseif false then
+      -- catch
+    elseif false then
+      -- function declaration
+    elseif false then
+      -- break or continue
+    elseif false then
+      -- sequence of binary operators
+    elseif false then
+      -- recursion call
+    end
+    child = get_next_child()
+  end
 
-	local body_children_iter = body:iter_children()
-	local child = body_children_iter()
-	while child ~= nil do
-		if is_loop_statement_node(child) then
-			scorer:increment()
-		end
-		child = body_children_iter()
-	end
-
-	return scorer:score()
+  return score_controller.get_complexity(score)
 end
 
 return M
