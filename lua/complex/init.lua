@@ -6,7 +6,6 @@ end
 
 local filetype_checker = require("complex.filetype_checker")
 local scorer = require("complex.scorer")
-local S = require("complex.score")
 
 -- The main API
 local M = {}
@@ -27,7 +26,7 @@ M.get_function_complexity = filetype_checker.with_check_filetype(function()
 	local starting_body_node = ts_parser.get_body_node(top_level_fn_node)
 	assert(starting_body_node ~= nil, "Function node doesn't have a body?")
 
-	local ok, result = pcall(scorer.calculate_complexity, starting_body_node, S.Score:new(), S.score_controller)
+	local ok, result = pcall(scorer.calculate_complexity, starting_body_node, 0)
 	if not ok then
 		P(result)
 		return

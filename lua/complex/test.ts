@@ -1,6 +1,11 @@
 function fn() {
   console.log("fn");
+  if (true) {
+    console.log()
+    if (false) {
 
+    }
+  }
 }
 
 const arrowFn = () => {
@@ -10,7 +15,6 @@ const arrowFn = () => {
   }
 
   while (false) {
-
   }
 
   let v = 3;
