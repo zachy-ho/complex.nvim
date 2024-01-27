@@ -5,8 +5,8 @@ local create_typescript_buf = function()
 	vim.api.nvim_buf_set_option(buf, "filetype", "typescript")
 	return buf
 end
-describe("calculate_complexity", function()
-	describe("for typescript", function()
+describe("[Typescript]", function()
+	describe("calculate_complexity", function()
 		it("handles functions with nested loops", function()
 			local buf = create_typescript_buf()
 			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
@@ -26,52 +26,7 @@ describe("calculate_complexity", function()
 			assert.equal(scorer.calculate_complexity(node, 0), 5)
 		end)
 
-		it("handles functions with simple if statement without an alternative", function()
-			local buf = create_typescript_buf()
-			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-				"function basicFn() {",
-				"  if (true) {}",
-				"}",
-			})
-			local node = vim.treesitter.get_node({
-				bufnr = buf,
-				pos = { 1, 0 },
-			})
-			assert.equal(scorer.calculate_complexity(node, 0), 1)
-		end)
-
-		it("handles functions with if statement with basic alternative (else)", function()
-			local buf = create_typescript_buf()
-			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-				"function basicFn() {",
-				"  if (true) {}",
-				"  else {}",
-				"}",
-			})
-			local node = vim.treesitter.get_node({
-				bufnr = buf,
-				pos = { 1, 0 },
-			})
-			assert.equal(scorer.calculate_complexity(node, 0), 2)
-		end)
-
-		it("handles functions with if statement with multiple alternatives", function()
-			local buf = create_typescript_buf()
-			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-				"function basicFn() {",
-				"  if (true) {}",
-				"  else if (false) {}",
-				"  else {}",
-				"}",
-			})
-			local node = vim.treesitter.get_node({
-				bufnr = buf,
-				pos = { 1, 0 },
-			})
-			assert.equal(scorer.calculate_complexity(node, 0), 3)
-		end)
-
-		it("handles functions with nested if statements and alternatives", function()
+		it("handles functions with if statements", function()
 			local buf = create_typescript_buf()
 			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
 				"function basicFn() {",
@@ -93,6 +48,56 @@ describe("calculate_complexity", function()
 				pos = { 1, 0 },
 			})
 			assert.equal(scorer.calculate_complexity(node, 0), 14)
+		end)
+	end)
+
+	describe("get_if_complexity", function()
+		it("considers the if statement itself as a point of complexity", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"if (true) {}",
+			})
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+			assert.equal(scorer.get_if_complexity(node, 0), 1)
+		end)
+
+		it("calculates complexity for an if statement with alternatives", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"if (true) {}",
+				"else if (true) {}",
+				"else {}",
+			})
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+			assert.equal(scorer.get_if_complexity(node, 0), 3)
+		end)
+
+		it("calculates complexity for an if statement with nested statements", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"if (true) {",
+				"  if (true) {}",
+				"}",
+				"else if (false) {",
+				"  if (true) {}",
+				"  else if (false) {}",
+				"  else {",
+				"    if (true) {}",
+				"  }",
+				"}",
+				"else {}",
+			})
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+			assert.equal(scorer.get_if_complexity(node, 0), 14)
 		end)
 	end)
 end)
