@@ -25,7 +25,7 @@ describe("typescript parser", function()
 			})
 
 			local outermost_fn = ts_parser.get_top_level_function_node(node)
-			assert(outermost_fn ~= nil)
+			assert.is_not_nil(outermost_fn)
 
 			local function_name
 			for child in outermost_fn:iter_children() do

@@ -3,12 +3,19 @@ function fn() {
   if (true) {
     console.log()
     if (false) {
-
     }
-  } else if (false) {
-
-  } else {
+  } else if (true) {
     if (true) {}
+    else if (true) {
+      if (true) {}
+    }
+    else {}
+  } else {
+    if (true) {  }
+    else if(true) {
+      if (true) {}
+    }
+    else {}
   }
 }
 
