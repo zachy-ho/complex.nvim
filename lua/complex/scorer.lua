@@ -54,10 +54,24 @@ M.get_loop_complexity = function(node, nest)
 
 	-- Increment for the loop statement itself
 	increment()
-	local body_node = assert(ts_parser.get_loop_body_node(node), "Loop doesn't have a body node for some reason?")
+	local body_node = assert(ts_parser.get_statement_block(node), "Loop doesn't have a body node for some reason?")
 	-- Calculate complexity for the loop body
 	increment_by(M.calculate_complexity(body_node, nest + 1))
 
+	return get_score()
+end
+
+M.get_catch_complexity = function(node, nest)
+	local increment, increment_by, get_score = create_score_controller(0, nest)
+	-- catch
+	local catch = ts_parser.get_catch_node(node)
+	if catch then
+		increment()
+		local statement = ts_parser.get_statement_block(catch)
+		if statement then
+			increment_by(M.calculate_complexity(statement, nest + 1))
+		end
+	end
 	return get_score()
 end
 
@@ -78,8 +92,8 @@ M.calculate_complexity = function(node, nest)
 			increment_by(M.get_loop_complexity(child, nest))
 		elseif ts_parser.is_if_statement_node(child) then
 			increment_by(M.get_if_complexity(child, nest))
-		elseif false then
-		-- catch
+		elseif ts_parser.is_try_statement_node(child) then
+			increment_by(M.get_catch_complexity(child, nest))
 		elseif false then
 		-- function declaration
 		elseif false then

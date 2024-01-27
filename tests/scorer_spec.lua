@@ -49,6 +49,22 @@ describe("[Typescript]", function()
 			})
 			assert.equal(scorer.calculate_complexity(node, 0), 14)
 		end)
+
+		it("handles functions with catch clauses", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"function basicFn() {",
+				"  try {}",
+				"  catch(e) {}",
+				"  finally {}",
+				"}",
+			})
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 1, 0 },
+			})
+			assert.equal(scorer.calculate_complexity(node, 0), 1)
+		end)
 	end)
 
 	describe("get_if_complexity", function()

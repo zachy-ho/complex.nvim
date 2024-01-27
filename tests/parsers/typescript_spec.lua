@@ -139,7 +139,7 @@ describe("typescript parser", function()
 			assert.is_nil(ts_parser.get_alternative_node(if_statement_node))
 		end)
 
-		it("will throw an error if called with a non if_statement TSNode", function()
+		it("throws if called with a non if_statement TSNode", function()
 			local buf = create_typescript_buf()
 			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
 				"function basicFn() {",
@@ -154,6 +154,56 @@ describe("typescript parser", function()
 
 			assert.has_error(function()
 				ts_parser.get_consequence_node(node)
+			end)
+		end)
+	end)
+
+	describe("get_catch_node", function()
+		it("returns the catch clause node for try_statement node if there is one", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"try {}",
+				"catch(e) {}",
+			})
+			local try_statement_node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+
+			local catch_node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 1, 0 },
+			})
+
+			assert.equal(ts_parser.get_catch_node(try_statement_node), catch_node)
+		end)
+
+		it("returns nil if the try block has no catch clause", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"try {}",
+				"finally {}",
+			})
+			local try_statement_node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+
+			assert.is_nil(ts_parser.get_catch_node(try_statement_node))
+		end)
+
+		it("throws if not called with a try_statement TSNode", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"let foo = 0",
+			})
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+
+			assert.has_error(function()
+				ts_parser.get_catch_node(node)
 			end)
 		end)
 	end)

@@ -20,21 +20,13 @@ function fn() {
 }
 
 const arrowFn = () => {
-  console.log("arrow fn");
-  for (let i = 0; i < 2; i++) {
+  try {
 
-  }
+  } catch (e) {
+    try {
 
-  while (false) {
-  }
-
-  let v = 3;
-  do {
-    console.log('in a do while')
-    continue;
-    break;
-  }
-  while (v > 0) 
+    } catch (e) {}
+  } finally {}
 }
 
 const someVar = {

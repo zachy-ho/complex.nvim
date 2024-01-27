@@ -36,9 +36,15 @@ M.is_loop_statement_node = function(node)
 end
 
 ---@param node TSNode
----@return boolean is_loop_node
+---@return boolean is_if_node
 M.is_if_statement_node = function(node)
 	return node:type() == "if_statement"
+end
+
+---@param node TSNode
+---@return boolean is_try_node
+M.is_try_statement_node = function(node)
+	return node:type() == "try_statement"
 end
 
 ---@param node TSNode
@@ -73,10 +79,10 @@ M.get_body_node = function(node)
 	return nil
 end
 
----@param loop_statement_node TSNode
+---@param node TSNode node with children
 ---@return TSNode | nil
-M.get_loop_body_node = function(loop_statement_node)
-	local get_next_child = loop_statement_node:iter_children()
+M.get_statement_block = function(node)
+	local get_next_child = node:iter_children()
 	local child = get_next_child()
 	while child:type() ~= "statement_block" do
 		child = get_next_child()
@@ -96,6 +102,21 @@ end
 M.get_alternative_node = function(node)
 	assert(M.is_if_statement_node(node), "Tried to get an alternative node from non if-statement node.")
 	return node:child(3)
+end
+
+---@param node TSNode try_statement node
+---@return TSNode | nil
+M.get_catch_node = function(node)
+	assert(M.is_try_statement_node(node), "Tried to get a catch node from non try statement node.")
+	local iter = node:iter_children()
+	local child = iter()
+	while child ~= nil do
+		if child:type() == "catch_clause" then
+			return child
+		end
+		child = iter()
+	end
+	return nil
 end
 
 return M
