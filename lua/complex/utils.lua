@@ -12,4 +12,14 @@ function M.P(ting)
 	print(vim.inspect(ting))
 end
 
+---@param t table
+---@return number size of table
+function M.size(t)
+	local count = 0
+	for _ in pairs(t) do
+		count = count + 1
+	end
+	return count
+end
+
 return M
