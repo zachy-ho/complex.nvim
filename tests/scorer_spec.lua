@@ -116,4 +116,11 @@ describe("[Typescript]", function()
 			assert.equal(scorer.get_if_complexity(node, 0), 14)
 		end)
 	end)
+
+	describe("calculate_logical_op_complexity", function()
+		it("handles simple binary expression", function()
+			local seq = { Comparable.BASIC, "||", { Comparable.BASIC, "&&", Comparable.BASIC }, "||", Comparable.BASIC }
+			print(scorer.calculate_logical_op_complexity(seq, 0))
+		end)
+	end)
 end)

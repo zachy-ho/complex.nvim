@@ -1,5 +1,10 @@
+local utils = require("complex.utils")
 local ts_parser = require("complex.parsers.typescript")
 assert(ts_parser, "typescript_parser module could not be required???")
+
+Comparable = {
+	BASIC = "basic",
+}
 
 ---@param initial integer
 ---@param nest integer
@@ -22,6 +27,32 @@ local create_score_controller = function(initial, nest)
 end
 
 local M = {}
+
+---@param seq table
+---@param nest integer
+M.calculate_logical_op_complexity = function(seq, nest)
+	if utils.size(seq) == 0 then
+		error("Trying to calculate complexity for a sequence of length 0")
+	end
+	if utils.size(seq) == 1 then
+		return 0
+	end
+
+	local increment, increment_by, get_score = create_score_controller(1, nest)
+	local last_operator = seq[2]
+	for i = 3, utils.size(seq), 2 do
+		local comparable = seq[i]
+		local operator = seq[i + 1]
+		if type(comparable) == "table" then
+			increment_by(M.calculate_logical_op_complexity(comparable, nest))
+		end
+		if operator ~= nil and last_operator ~= operator then
+			increment()
+			last_operator = operator
+		end
+	end
+	return get_score()
+end
 
 M.get_if_complexity = function(node, nest)
 	assert(ts_parser.is_if_statement_node(node), "Called get_if_complexity on a non if_statement node")
@@ -91,13 +122,12 @@ M.calculate_complexity = function(node, nest)
 		if ts_parser.is_loop_statement_node(child) then
 			increment_by(M.get_loop_complexity(child, nest))
 		elseif ts_parser.is_if_statement_node(child) then
+			-- M.calculate_binary_expression_complexity(child, nest)
 			increment_by(M.get_if_complexity(child, nest))
 		elseif ts_parser.is_try_statement_node(child) then
 			increment_by(M.get_catch_complexity(child, nest))
 		elseif false then
 		-- function declaration
-		elseif false then
-		-- break or continue
 		elseif false then
 		-- sequence of binary operators
 		elseif false then

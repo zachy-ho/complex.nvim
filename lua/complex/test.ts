@@ -1,22 +1,11 @@
 function fn() {
-  console.log("fn");
-  if (true) {
-    console.log()
-    if (false) {
-    }
-  } else if (true) {
-    if (true) {}
-    else if (true) {
-      if (true) {}
-    }
-    else {}
-  } else {
-    if (true) {  }
-    else if(true) {
-      if (true) {}
-    }
-    else {}
-  }
+  var dog = 0
+  // if (true || false && true && false && true && false) {}
+  // if (true && false || true || false || true || false) {}
+  // if (true || true && true && false || true || false) {}
+  if (!!!!!(dog && 0) && '' && 0 < 1 || true && false) {}
+  true && false
+  const huh = true && 1
 }
 
 const arrowFn = () => {
