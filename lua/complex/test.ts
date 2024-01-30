@@ -1,10 +1,11 @@
 function fn() {
-  var dog = 0
+  let foo = 0
+  let bar = 0
   // if (true || false && true && false && true && false) {}
   // if (true && false || true || false || true || false) {}
   // if (true || true && true && false || true || false) {}
-  if (!!!!!(dog && 0) && '' && 0 < 1 || true && false) {}
-  true && false
+  if (true || !!foo && !(bar || (undefined && 2)) || null) {}
+  true && !false
   const huh = true && 1
 }
 

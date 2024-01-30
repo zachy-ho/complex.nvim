@@ -26,6 +26,18 @@ local create_score_controller = function(initial, nest)
 	return increment, increment_by, get_score
 end
 
+---@param node TSNode
+local is_equality_comparator = function(node)
+	return node:type() == "<"
+		or node:type() == ">"
+		or node:type() == "<="
+		or node:type() == ">="
+		or node:type() == "<=="
+		or node:type() == ">=="
+		or node:type() == "=="
+		or node:type() == "==="
+end
+
 local M = {}
 
 ---@param seq table
@@ -52,6 +64,64 @@ M.calculate_logical_op_complexity = function(seq, nest)
 		end
 	end
 	return get_score()
+end
+
+---@param node TSNode
+---@return table
+M.flatten_logical_expression = function(node)
+	-- Basic base cases
+	if
+		node:type() == "true"
+		or node:type() == "false"
+		or node:type() == "number"
+		or node:type() == "string"
+		or node:type() == "identifier"
+		or node:type() == "null"
+		or node:type() == "undefined"
+		or node:type() == "update_expression"
+	then
+		return { Comparable.BASIC }
+	end
+
+	-- Unary expression base case
+	if node:type() == "unary_expression" then
+		if node:child(0):type() == "!" then
+			return { unpack(M.flatten_logical_expression(node:child(1))) }
+		else
+			local iter = node:iter_children()
+			local child = iter()
+			local concatenated_children = ""
+			while child ~= nil do
+				concatenated_children = "" .. child:type() .. " "
+				child = iter()
+			end
+			error(
+				"unary_expression that doesn't start with a `!` is not supported. This unary_expression looks like "
+					.. concatenated_children
+			)
+		end
+	end
+
+	-- Flatten parenthesized_expression but keep in an inner table
+	if node:type() == "parenthesized_expression" then
+		return { M.flatten_logical_expression(node:child(1)) }
+	end
+
+	assert(
+		node:type() == "binary_expression",
+		node:type() .. " type should have been handled as a base case before this point."
+	)
+
+	local left = node:child(0)
+	local operator = node:child(1)
+	local right = node:child(2)
+	if is_equality_comparator(operator) then
+		return { Comparable.BASIC }
+	end
+	local left_flattened = M.flatten_logical_expression(left)
+	local right_flattened = M.flatten_logical_expression(right)
+	local flattened = utils.concat(utils.concat(left_flattened, { operator:type() }), right_flattened)
+	return flattened
 end
 
 M.get_if_complexity = function(node, nest)

@@ -1,4 +1,5 @@
 local scorer = require("complex.scorer")
+local utils = require("complex.utils")
 
 local create_typescript_buf = function()
 	local buf = vim.api.nvim_create_buf(false, true)
@@ -120,7 +121,120 @@ describe("[Typescript]", function()
 	describe("calculate_logical_op_complexity", function()
 		it("handles simple binary expression", function()
 			local seq = { Comparable.BASIC, "||", { Comparable.BASIC, "&&", Comparable.BASIC }, "||", Comparable.BASIC }
-			print(scorer.calculate_logical_op_complexity(seq, 0))
+			-- print(scorer.calculate_logical_op_complexity(seq, 0))
+		end)
+	end)
+
+	describe("flatten_logical_expression", function()
+		it("handles simple binary expression", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"true && false",
+			})
+			---@type TSNode
+			local node = vim.treesitter
+				.get_node({
+					bufnr = buf,
+					pos = { 0, 0 },
+				})
+				:tree()
+				:root()
+				:child(0)
+				:child(0)
+
+			local flattened = scorer.flatten_logical_expression(node)
+			assert.equal(flattened[1], Comparable.BASIC)
+		end)
+
+		it("handles simple unary expressions", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"!true",
+			})
+			---@type TSNode
+			local node = vim.treesitter
+				.get_node({
+					bufnr = buf,
+					pos = { 0, 0 },
+				})
+				:tree()
+				:root()
+				:child(0)
+				:child(0)
+
+			local flattened = scorer.flatten_logical_expression(node)
+			assert.equal(utils.size(flattened), 1)
+			assert.equal(flattened[1], Comparable.BASIC)
+		end)
+
+		it("handles long unary expressions", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"!!!!true",
+			})
+			---@type TSNode
+			local node = vim.treesitter
+				.get_node({
+					bufnr = buf,
+					pos = { 0, 0 },
+				})
+				:tree()
+				:root()
+				:child(0)
+				:child(0)
+
+			local flattened = scorer.flatten_logical_expression(node)
+			assert.equal(utils.size(flattened), 1)
+			assert.equal(flattened[1], Comparable.BASIC)
+		end)
+
+		it("flattens paranthesized expressions in an inner table", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"(true || false)",
+			})
+			---@type TSNode
+			local node = vim.treesitter
+				.get_node({
+					bufnr = buf,
+					pos = { 0, 0 },
+				})
+				:tree()
+				:root()
+				:child(0)
+				:child(0)
+
+			local flattened = scorer.flatten_logical_expression(node)
+			local inner_flattened = flattened[1]
+			assert.is_table(inner_flattened)
+			assert.equal(inner_flattened[1], Comparable.BASIC)
+			assert.equal(inner_flattened[2], "||")
+			assert.equal(inner_flattened[3], Comparable.BASIC)
+		end)
+
+		it("handles complex logical operations", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"let foo = ''",
+				"let bar = 2",
+				"true || !!foo && !(bar || (undefined && 2)) || null",
+			})
+			---@type TSNode
+			local node = vim.treesitter
+				.get_node({
+					bufnr = buf,
+					pos = { 2, 0 },
+				})
+				:tree()
+				:root()
+				:child(2)
+				:child(0)
+
+			local flattened = scorer.flatten_logical_expression(node)
+			assert.equal(
+				tostring(vim.inspect(flattened)),
+				'{ "basic", "||", "basic", "&&", { "basic", "||", { "basic", "&&", "basic" } }, "||", "basic" }'
+			)
 		end)
 	end)
 end)
