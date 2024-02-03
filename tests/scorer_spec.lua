@@ -78,7 +78,7 @@ describe("[Typescript]", function()
 				bufnr = buf,
 				pos = { 0, 0 },
 			})
-			assert.equal(scorer.get_if_complexity(node, 0), 1)
+			assert.equal(scorer.calculate_if_complexity(node, 0), 1)
 		end)
 
 		it("calculates complexity for an if statement with alternatives", function()
@@ -92,7 +92,7 @@ describe("[Typescript]", function()
 				bufnr = buf,
 				pos = { 0, 0 },
 			})
-			assert.equal(scorer.get_if_complexity(node, 0), 3)
+			assert.equal(scorer.calculate_if_complexity(node, 0), 3)
 		end)
 
 		it("calculates complexity for an if statement with nested statements", function()
@@ -114,14 +114,57 @@ describe("[Typescript]", function()
 				bufnr = buf,
 				pos = { 0, 0 },
 			})
-			assert.equal(scorer.get_if_complexity(node, 0), 14)
+			assert.equal(scorer.calculate_if_complexity(node, 0), 14)
 		end)
 	end)
 
 	describe("calculate_logical_op_complexity", function()
-		it("handles simple binary expression", function()
-			local seq = { Comparable.BASIC, "||", { Comparable.BASIC, "&&", Comparable.BASIC }, "||", Comparable.BASIC }
-			-- print(scorer.calculate_logical_op_complexity(seq, 0))
+		it("throws if nothing to evaluate", function()
+			assert.has_error(function()
+				scorer.calculate_boolean_expression_complexity({}, 0)
+			end)
+		end)
+
+		it("throws if operation input is invalid", function()
+			assert.has_error(function()
+				scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, "||" }, 0)
+			end)
+
+			assert.has_error(function()
+				scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, Comparable.BASIC }, 0)
+			end)
+
+			assert.has_error(function()
+				scorer.calculate_boolean_expression_complexity({ "||" }, 0)
+			end)
+		end)
+
+		it(
+			"treats comparables wrapped in multiple layers of unnecessary nesting the same as a single wrapped layer",
+			function()
+				local with_multiple_layers = scorer.calculate_boolean_expression_complexity(
+					{ { { Comparable.BASIC, "||", Comparable.BASIC } } },
+					0
+				)
+				local with_one_layer =
+					scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, "||", Comparable.BASIC }, 0)
+				assert.equal(with_multiple_layers, with_one_layer)
+			end
+		)
+
+		it("assesses a fundamental increment for each sequence of binary logical operators", function()
+			local operation = {
+				Comparable.BASIC,
+				"||",
+				Comparable.BASIC,
+				"||",
+				Comparable.BASIC,
+				"&&",
+				Comparable.BASIC,
+				"||",
+				Comparable.BASIC,
+			}
+			assert.equal(scorer.calculate_boolean_expression_complexity(operation, 0), 3)
 		end)
 	end)
 
@@ -142,8 +185,11 @@ describe("[Typescript]", function()
 				:child(0)
 				:child(0)
 
-			local flattened = scorer.flatten_logical_expression(node)
-			assert.equal(flattened[1], Comparable.BASIC)
+			local flattened = scorer.flatten_boolean_expression(node)
+			assert.equal(
+				tostring(vim.inspect(flattened)),
+				tostring(vim.inspect({ Comparable.BASIC, "&&", Comparable.BASIC }))
+			)
 		end)
 
 		it("handles simple unary expressions", function()
@@ -162,7 +208,7 @@ describe("[Typescript]", function()
 				:child(0)
 				:child(0)
 
-			local flattened = scorer.flatten_logical_expression(node)
+			local flattened = scorer.flatten_boolean_expression(node)
 			assert.equal(utils.size(flattened), 1)
 			assert.equal(flattened[1], Comparable.BASIC)
 		end)
@@ -183,9 +229,8 @@ describe("[Typescript]", function()
 				:child(0)
 				:child(0)
 
-			local flattened = scorer.flatten_logical_expression(node)
-			assert.equal(utils.size(flattened), 1)
-			assert.equal(flattened[1], Comparable.BASIC)
+			local flattened = scorer.flatten_boolean_expression(node)
+			assert.equal(tostring(vim.inspect(flattened)), tostring(vim.inspect({ Comparable.BASIC })))
 		end)
 
 		it("flattens paranthesized expressions in an inner table", function()
@@ -204,12 +249,13 @@ describe("[Typescript]", function()
 				:child(0)
 				:child(0)
 
-			local flattened = scorer.flatten_logical_expression(node)
+			local flattened = scorer.flatten_boolean_expression(node)
 			local inner_flattened = flattened[1]
 			assert.is_table(inner_flattened)
-			assert.equal(inner_flattened[1], Comparable.BASIC)
-			assert.equal(inner_flattened[2], "||")
-			assert.equal(inner_flattened[3], Comparable.BASIC)
+			assert.equal(
+				tostring(vim.inspect(inner_flattened)),
+				tostring(vim.inspect({ Comparable.BASIC, "||", Comparable.BASIC }))
+			)
 		end)
 
 		it("handles complex logical operations", function()
@@ -230,10 +276,40 @@ describe("[Typescript]", function()
 				:child(2)
 				:child(0)
 
-			local flattened = scorer.flatten_logical_expression(node)
+			local flattened = scorer.flatten_boolean_expression(node)
 			assert.equal(
 				tostring(vim.inspect(flattened)),
-				'{ "basic", "||", "basic", "&&", { "basic", "||", { "basic", "&&", "basic" } }, "||", "basic" }'
+				tostring(vim.inspect({
+					Comparable.BASIC,
+					"||",
+					Comparable.BASIC,
+					"&&",
+					{ Comparable.BASIC, "||", { Comparable.BASIC, "&&", Comparable.BASIC } },
+					"||",
+					Comparable.BASIC,
+				}))
+			)
+		end)
+
+		it("puts parenthesized_expressions in inner tables", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"(((true || false)))",
+			})
+			---@type TSNode
+			local node = vim.treesitter
+				.get_node({
+					bufnr = buf,
+					pos = { 0, 0 },
+				})
+				:tree()
+				:root()
+				:child(0)
+				:child(0)
+			local flattened = scorer.flatten_boolean_expression(node)
+			assert.equal(
+				tostring(vim.inspect(unpack(flattened))),
+				tostring(vim.inspect({ { { Comparable.BASIC, "||", Comparable.BASIC } } }))
 			)
 		end)
 	end)

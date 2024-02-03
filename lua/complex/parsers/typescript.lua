@@ -48,6 +48,12 @@ M.is_try_statement_node = function(node)
 end
 
 ---@param node TSNode
+---@return boolean is_try_node
+M.is_binary_expression_node = function(node)
+	return node:type() == "binary_expression"
+end
+
+---@param node TSNode
 ---@return TSNode | nil
 M.get_top_level_function_node = function(node)
 	local current_node = node
@@ -81,7 +87,7 @@ end
 
 ---@param node TSNode node with children
 ---@return TSNode | nil
-M.get_statement_block = function(node)
+M.get_statement_block_node = function(node)
 	local get_next_child = node:iter_children()
 	local child = get_next_child()
 	while child:type() ~= "statement_block" do
