@@ -118,36 +118,34 @@ describe("[Typescript]", function()
 		end)
 	end)
 
-	describe("calculate_logical_op_complexity", function()
+	describe("calculate_boolean_expression_complexity", function()
 		it("throws if nothing to evaluate", function()
 			assert.has_error(function()
-				scorer.calculate_boolean_expression_complexity({}, 0)
+				scorer.calculate_boolean_expression_complexity({})
 			end)
 		end)
 
 		it("throws if operation input is invalid", function()
 			assert.has_error(function()
-				scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, "||" }, 0)
+				scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, "||" })
 			end)
 
 			assert.has_error(function()
-				scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, Comparable.BASIC }, 0)
+				scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, Comparable.BASIC })
 			end)
 
 			assert.has_error(function()
-				scorer.calculate_boolean_expression_complexity({ "||" }, 0)
+				scorer.calculate_boolean_expression_complexity({ "||" })
 			end)
 		end)
 
 		it(
 			"treats comparables wrapped in multiple layers of unnecessary nesting the same as a single wrapped layer",
 			function()
-				local with_multiple_layers = scorer.calculate_boolean_expression_complexity(
-					{ { { Comparable.BASIC, "||", Comparable.BASIC } } },
-					0
-				)
+				local with_multiple_layers =
+					scorer.calculate_boolean_expression_complexity({ { { Comparable.BASIC, "||", Comparable.BASIC } } })
 				local with_one_layer =
-					scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, "||", Comparable.BASIC }, 0)
+					scorer.calculate_boolean_expression_complexity({ Comparable.BASIC, "||", Comparable.BASIC })
 				assert.equal(with_multiple_layers, with_one_layer)
 			end
 		)
@@ -164,7 +162,7 @@ describe("[Typescript]", function()
 				"||",
 				Comparable.BASIC,
 			}
-			assert.equal(scorer.calculate_boolean_expression_complexity(operation, 0), 3)
+			assert.equal(scorer.calculate_boolean_expression_complexity(operation), 3)
 		end)
 	end)
 
@@ -311,6 +309,50 @@ describe("[Typescript]", function()
 				tostring(vim.inspect(unpack(flattened))),
 				tostring(vim.inspect({ { { Comparable.BASIC, "||", Comparable.BASIC } } }))
 			)
+		end)
+	end)
+
+	describe("calculate_switch_complexity", function()
+		it("throws if called on an invalid node", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"const foo = 0",
+			})
+
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+			assert.has_error(function()
+				scorer.calculate_switch_complexity(node, 0)
+			end)
+		end)
+
+		it("increments for the switch statement itself", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"switch (true) {}",
+			})
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+			assert.equal(scorer.calculate_switch_complexity(node, 0), 1)
+		end)
+
+		it("calculates complexity for case blocks with an incremented nesting level", function()
+			local buf = create_typescript_buf()
+			vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+				"switch (true) {", -- +1
+				"  case true:", -- nesting +1
+				"    if (true) {}", -- +2 (+1 nesting)
+				"}",
+			})
+			local node = vim.treesitter.get_node({
+				bufnr = buf,
+				pos = { 0, 0 },
+			})
+			assert.equal(scorer.calculate_switch_complexity(node, 0), 3)
 		end)
 	end)
 end)

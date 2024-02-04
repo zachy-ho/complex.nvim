@@ -49,6 +49,24 @@ end
 
 ---@param node TSNode
 ---@return boolean is_try_node
+M.is_switch_statement_node = function(node)
+	return node:type() == "switch_statement"
+end
+
+---@param node TSNode
+---@return boolean is_try_node
+M.is_switch_case_node = function(node)
+	return node:type() == "switch_case"
+end
+
+---@param node TSNode
+---@return boolean is_try_node
+M.is_switch_default_node = function(node)
+	return node:type() == "switch_default"
+end
+
+---@param node TSNode
+---@return boolean is_try_node
 M.is_binary_expression_node = function(node)
 	return node:type() == "binary_expression"
 end

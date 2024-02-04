@@ -27,6 +27,17 @@ local create_score_controller = function(initial, nest)
 end
 
 ---@param node TSNode
+---@param fn fun(child: TSNode)
+local for_each_child = function(node, fn)
+	local get_next_child = node:iter_children()
+	local case_child = get_next_child()
+	while case_child ~= nil do
+		fn(case_child)
+		case_child = get_next_child()
+	end
+end
+
+---@param node TSNode
 local is_equality_comparator = function(node)
 	return node:type() == "<"
 		or node:type() == ">"
@@ -57,9 +68,8 @@ end
 local M = {}
 
 ---@param expression table A list of symbols, representing a boolean expression. Callers should use `flatten_boolean_expression` to generate this list.
----@param nest integer nesting level
 --Will throw if `expression` input is invalid
-M.calculate_boolean_expression_complexity = function(expression, nest)
+M.calculate_boolean_expression_complexity = function(expression)
 	if utils.size(expression) == 0 then
 		error("Trying to calculate complexity for a sequence of length 0")
 	end
@@ -67,12 +77,12 @@ M.calculate_boolean_expression_complexity = function(expression, nest)
 		error("Sequence has invalid length of " .. tostring(utils.size(expression)))
 	end
 
-	local increment, increment_by, get_score = create_score_controller(0, nest)
+	local increment, increment_by, get_score = create_score_controller(0, 0)
 
 	if utils.size(expression) == 1 then
 		local comparable = validate_comparable(expression[1])
 		if type(comparable) == "table" then
-			return increment_by(M.calculate_boolean_expression_complexity(expression[1], nest))
+			return increment_by(M.calculate_boolean_expression_complexity(expression[1]))
 		else
 			return 0
 		end
@@ -84,7 +94,7 @@ M.calculate_boolean_expression_complexity = function(expression, nest)
 		local comparable = validate_comparable(expression[i])
 		local operator = expression[i + 1]
 		if type(comparable) == "table" then
-			increment_by(M.calculate_boolean_expression_complexity(comparable, nest))
+			increment_by(M.calculate_boolean_expression_complexity(comparable))
 		end
 		if operator ~= nil and last_operator ~= operator then
 			increment()
@@ -161,7 +171,7 @@ M.calculate_if_complexity = function(node, nest)
 	-- Increment for the if statement itself
 	increment()
 	-- Increment for the condition
-	increment_by(M.calculate_boolean_expression_complexity(M.flatten_boolean_expression(node:child(1)), nest))
+	increment_by(M.calculate_boolean_expression_complexity(M.flatten_boolean_expression(node:child(1))))
 	-- Increment by the complexity of the consequence body
 	increment_by(M.calculate_complexity(ts_parser.get_consequence_node(node), nest + 1))
 	-- Increment by the complexity of the alternative
@@ -208,6 +218,33 @@ M.calculate_catch_complexity = function(node, nest)
 	return get_score()
 end
 
+---@param node TSNode switch statement node
+---@param nest
+M.calculate_switch_complexity = function(node, nest)
+	assert(
+		ts_parser.is_switch_statement_node(node),
+		"Called calculate_switch_complexity on an invalid node: " .. node:type()
+	)
+	local increment, increment_by, get_score = create_score_controller(0, nest)
+	increment() -- +1 for the switch statement itself
+
+	local predicate = node:child(1)
+	increment_by(M.calculate_boolean_expression_complexity(M.flatten_boolean_expression(predicate)))
+
+	local body = node:child(2)
+
+	for_each_child(body, function(child)
+		if ts_parser.is_switch_case_node(child) or ts_parser.is_switch_default_node(child) then
+			for_each_child(child, function(case_child)
+				increment_by(M.calculate_complexity(case_child, nest + 1))
+			end)
+		end
+	end)
+
+	-- handle statement body
+	return get_score()
+end
+
 ---@param node TSNode
 ---@param nest integer Nesting level of node's scope
 ---@return number complexity
@@ -219,10 +256,12 @@ M.calculate_complexity = function(node, nest)
 		return increment_by(M.calculate_loop_complexity(node, nest))
 	elseif ts_parser.is_if_statement_node(node) then
 		return increment_by(M.calculate_if_complexity(node, nest))
+	elseif ts_parser.is_switch_statement_node(node) then
+		return increment_by(M.calculate_switch_complexity(node, nest))
 	elseif ts_parser.is_try_statement_node(node) then
 		return increment_by(M.calculate_catch_complexity(node, nest))
 	elseif ts_parser.is_binary_expression_node(node) then
-		return increment_by(M.calculate_boolean_expression_complexity(M.flatten_boolean_expression(node), nest))
+		return increment_by(M.calculate_boolean_expression_complexity(M.flatten_boolean_expression(node)))
 	elseif false then
 		-- function declaration
 	elseif false then
